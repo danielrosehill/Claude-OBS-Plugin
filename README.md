@@ -19,7 +19,17 @@ This plugin ships an MCP server (`obs-mcp`) via `.mcp.json` at the plugin root. 
 
 - Linux desktop with OBS Studio 28+ (older OBS works but obs-websocket must be installed manually).
 - Node.js 18+ on PATH (for the bundled `obs-mcp`).
-- `OBS_WEBSOCKET_PASSWORD` exported in your shell before launching Claude Code.
+
+## Environment variables
+
+Set these in your shell profile (`~/.bashrc` / `~/.zshrc`) before launching Claude Code:
+
+| Var | Required | Purpose |
+|---|---|---|
+| `OBS_WEBSOCKET_PASSWORD` | yes | Password from OBS → Tools → WebSocket Server Settings. Consumed by the bundled `obs-mcp` server. |
+| `OBS_WEBSOCKET_URL` | no | Defaults to `ws://localhost:4455`. Override for remote OBS or non-default port. |
+| `OBS_WORKSPACE` | recommended | Folder where backups, scene exports, and Claude-generated notes about your OBS setup are stored. Suggested: `~/Documents/OBS-Workspace/`. The `setup` skill will prompt and scaffold this if unset. |
+| `OBS_CONFIG_PATH` | no | Override the auto-detected OBS config dir. Useful for non-standard installs or running multiple OBS profiles side by side. |
 
 ## Installation
 

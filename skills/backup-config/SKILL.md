@@ -12,24 +12,26 @@ Creates a timestamped tarball of the OBS config directory at a user-chosen locat
 - `setup` skill has run.
 - `detect-install` resolves the active OBS config dir.
 
-## First run: ask for backup folder
+## Backup folder resolution
 
-If `$CLAUDE_USER_DATA/obs-mgmt/config.json` doesn't have a `backup_folder` entry, prompt the user for an absolute path. Suggest defaults:
+Resolve the backup folder in this order:
 
-- `~/Documents/Backups/OBS/`
-- `~/Backups/obs-studio/`
-- An external drive mount, e.g. `/run/media/<user>/<drive>/obs-backups/`
+1. **`$OBS_WORKSPACE/backups/`** — default. The `setup` skill prompts for `OBS_WORKSPACE` and scaffolds the `backups/` subfolder.
+2. **`backup_folder` override in `$CLAUDE_USER_DATA/obs-mgmt/config.json`** — if the user explicitly set a non-default location (e.g. an external drive mount).
+3. **First-run prompt** — if neither is set, ask for an absolute path. Suggest:
+   - `$OBS_WORKSPACE/backups/` (preferred — keeps everything in one workspace).
+   - An external drive mount, e.g. `/run/media/<user>/<drive>/obs-backups/`.
 
-Create the folder if it doesn't exist (after confirming with the user). Persist the chosen path in `config.json`:
+Persist any override in `config.json`:
 
 ```json
 {
-  "backup_folder": "/home/<user>/Documents/Backups/OBS",
+  "backup_folder": "/run/media/<user>/<drive>/obs-backups",
   "retention_count": 10
 }
 ```
 
-The backup folder is **user-owned data location** — store only the pointer in plugin config, never the backups themselves under `$CLAUDE_USER_DATA`.
+The backup folder is **user-owned data**. Store only the pointer under `$CLAUDE_USER_DATA`; the tarballs themselves live in `$OBS_WORKSPACE` (or the user's chosen override path).
 
 ## Backup procedure
 

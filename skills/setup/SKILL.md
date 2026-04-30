@@ -11,30 +11,62 @@ This skill is the prerequisite for every other skill in `obs-mgmt`. After it suc
 - An `obs-mcp` MCP server registered in Claude Code.
 - Connection details persisted under `$CLAUDE_USER_DATA/obs-mgmt/config.json`.
 
-## Data location
+## Data locations — two env vars to set
 
-Resolve the plugin data root:
+This plugin separates **plugin config** (small pointers, owned by the plugin) from **user-owned data** (backups, exported scene collections, notes — owned by the user). Two env vars control where each lives:
 
-```bash
-DATA_ROOT="${CLAUDE_USER_DATA:-${XDG_DATA_HOME:-$HOME/.local/share}/claude-plugins}/obs-mgmt"
-mkdir -p "$DATA_ROOT"
-```
+| Env var | Purpose | Default if unset |
+|---|---|---|
+| `OBS_CONFIG_PATH` | Override the auto-detected OBS config directory. Useful for non-standard installs, custom `--profile` flags, or running multiple OBS configs side by side. | Resolved by `detect-install` skill from install type. |
+| `OBS_WORKSPACE` | User-owned folder for config backups, exported scene JSON, recording notes, and any docs Claude generates about the user's OBS setup. | Prompt the user during setup; suggest `~/Documents/OBS-Workspace/` or `~/repos/obs-workspace/`. |
 
-`config.json` will hold:
+Setup will:
 
-```json
-{
-  "install_type": "native|flatpak|snap",
-  "websocket": { "host": "localhost", "port": 4455, "password": "<generated>" },
-  "mcp_registered": true
-}
-```
+1. Resolve the plugin data root for **config pointers only**:
 
-Never store user-owned data (recordings, scene exports) under `$CLAUDE_USER_DATA` — that's for plugin config only.
+   ```bash
+   DATA_ROOT="${CLAUDE_USER_DATA:-${XDG_DATA_HOME:-$HOME/.local/share}/claude-plugins}/obs-mgmt"
+   mkdir -p "$DATA_ROOT"
+   ```
+
+2. Prompt the user for `OBS_WORKSPACE` if not already exported. Create the folder (with confirmation) if it doesn't exist. Suggest the user persist the export in `~/.bashrc` / `~/.zshrc` so it's stable across sessions:
+
+   ```bash
+   export OBS_WORKSPACE="$HOME/Documents/OBS-Workspace"
+   ```
+
+3. Persist pointers in `$DATA_ROOT/config.json`:
+
+   ```json
+   {
+     "install_type": "native|flatpak|snap|appimage",
+     "config_path": "/home/<user>/.config/obs-studio",
+     "workspace_path": "/home/<user>/Documents/OBS-Workspace",
+     "websocket": { "host": "localhost", "port": 4455 },
+     "mcp_bundled": true,
+     "setup_complete": true
+   }
+   ```
+
+   Never store the websocket password in `config.json` — it stays in the user's shell env (`OBS_WEBSOCKET_PASSWORD`).
+
+4. Inside `OBS_WORKSPACE`, scaffold a default layout the first time:
+
+   ```
+   $OBS_WORKSPACE/
+   ├── backups/      # backup-config writes tarballs here by default
+   ├── scenes/       # exported scene collection JSON
+   ├── docs/         # Claude-generated notes about the user's OBS setup
+   └── README.md
+   ```
+
+User-owned content (backups, exports, notes) **must** live under `OBS_WORKSPACE`, never under `$CLAUDE_USER_DATA`. Claude can freely write docs/notes/exports into `OBS_WORKSPACE/docs/` to build up a knowledge base about the user's specific OBS rig.
 
 ## Step 1: Detect / verify OBS install
 
 Delegate to the `detect-install` skill in this plugin. It returns one of `native`, `flatpak`, `snap`, or `missing`. If `missing`, stop and tell the user how to install OBS for their distro; do not proceed.
+
+If the user has set `OBS_CONFIG_PATH` in their env, prefer that over the auto-detected path and validate it exists and contains a `global.ini` (the OBS marker file).
 
 ## Step 2: Enable obs-websocket
 
