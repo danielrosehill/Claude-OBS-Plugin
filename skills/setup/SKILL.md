@@ -18,7 +18,7 @@ This plugin separates **plugin config** (small pointers, owned by the plugin) fr
 | Env var | Purpose | Default if unset |
 |---|---|---|
 | `OBS_CONFIG_PATH` | Override the auto-detected OBS config directory. Useful for non-standard installs, custom `--profile` flags, or running multiple OBS configs side by side. | Resolved by `detect-install` skill from install type. |
-| `OBS_WORKSPACE` | User-owned folder for config backups, exported scene JSON, recording notes, and any docs Claude generates about the user's OBS setup. | Prompt the user during setup; suggest `~/Documents/OBS-Workspace/` or `~/repos/obs-workspace/`. |
+| `OBS_WORKSPACE` (the **management workspace**) | User-owned folder for config backups, exported scene JSON, recording notes, and any docs Claude generates about the user's OBS setup. | Prompt the user during setup; suggest `~/Documents/OBS-Workspace/` or `~/repos/obs-workspace/`. |
 
 Setup will:
 
@@ -29,7 +29,7 @@ Setup will:
    mkdir -p "$DATA_ROOT"
    ```
 
-2. Prompt the user for `OBS_WORKSPACE` if not already exported. Create the folder (with confirmation) if it doesn't exist. Suggest the user persist the export in `~/.bashrc` / `~/.zshrc` so it's stable across sessions:
+2. Bootstrap the **management workspace** by delegating to the `init-workspace` skill. That skill prompts for the path, scaffolds the layout (`backups/`, `scenes/`, `plugins/`, `docs/`), and offers to turn it into a private GitHub repo so the workspace is versioned. Persist the export in `~/.bashrc` / `~/.zshrc` so it's stable across sessions:
 
    ```bash
    export OBS_WORKSPACE="$HOME/Documents/OBS-Workspace"
@@ -50,17 +50,7 @@ Setup will:
 
    Never store the websocket password in `config.json` — it stays in the user's shell env (`OBS_WEBSOCKET_PASSWORD`).
 
-4. Inside `OBS_WORKSPACE`, scaffold a default layout the first time:
-
-   ```
-   $OBS_WORKSPACE/
-   ├── backups/      # backup-config writes tarballs here by default
-   ├── scenes/       # exported scene collection JSON
-   ├── docs/         # Claude-generated notes about the user's OBS setup
-   └── README.md
-   ```
-
-User-owned content (backups, exports, notes) **must** live under `OBS_WORKSPACE`, never under `$CLAUDE_USER_DATA`. Claude can freely write docs/notes/exports into `OBS_WORKSPACE/docs/` to build up a knowledge base about the user's specific OBS rig.
+4. The workspace layout is scaffolded by `init-workspace` — see that skill for details. User-owned content (backups, exports, notes) **must** live under the management workspace, never under `$CLAUDE_USER_DATA`. Claude can freely write docs/notes/exports into `$OBS_WORKSPACE/docs/` to build up a knowledge base about the user's specific OBS rig; if the workspace is a git repo, those writes can be committed for version history.
 
 ## Step 1: Detect / verify OBS install
 

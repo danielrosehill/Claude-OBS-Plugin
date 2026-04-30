@@ -10,10 +10,15 @@ This plugin ships an MCP server (`obs-mcp`) via `.mcp.json` at the plugin root. 
 
 | Skill | What it does |
 |---|---|
-| `setup` | First-run: verify OBS, walk through enabling obs-websocket, set env vars, validate via the bundled `obs-mcp` server. Run this once before anything else. |
+| `setup` | First-run: verify OBS, walk through enabling obs-websocket, bootstrap the management workspace, validate via the bundled `obs-mcp` server. Run this once before anything else. |
+| `init-workspace` | Create (and optionally git-ify as a private GitHub repo) the **management workspace** — a user-owned folder where backups, scene exports, and Claude-generated notes about the OBS setup live. |
 | `detect-install` | Identify how OBS is installed (native package / Flatpak / Snap / AppImage / missing) and resolve the correct config and plugin directories. |
-| `backup-config` | Tarball the OBS config directory to a user-chosen folder, with retention. Pointer-only persistence — backups stay in user-owned space. |
+| `backup-config` | Tarball the OBS config directory to the management workspace (or a user override path), with retention. |
 | `install-plugin` | Install third-party OBS plugins from a release URL, GitHub repo, or local archive into the correct per-install plugin directory. |
+
+## The management workspace
+
+This plugin keeps user-owned data (config backups, scene exports, plugin artifacts, Claude-generated notes about your rig) in a single folder called the **management workspace**, pointed to by `$OBS_WORKSPACE`. The `init-workspace` skill can turn that folder into a private GitHub repo so it's versioned and survives machine wipes. Plugin config (small pointers only) lives separately under `$CLAUDE_USER_DATA/obs-mgmt/`.
 
 ## Requirements
 
