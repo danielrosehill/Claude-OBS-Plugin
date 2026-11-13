@@ -1,7 +1,7 @@
 {
   "name": "obs-mgmt",
-  "version": "1.0.0",
-  "description": "Claude Code plugin for managing OBS Studio on Linux: detect install type (native/flatpak/snap), enable obs-websocket, register obs-mcp for programmatic control, back up configs, and install OBS plugins.",
+  "version": "1.1.0",
+  "description": "Claude Code plugin for managing OBS Studio on Linux: detect install type (native/flatpak/snap), enable obs-websocket, register obs-mcp for programmatic control, back up configs, install OBS plugins, apply declarative scenes and hotkeys, check health and updates, with one multi-machine config workspace.",
   "author": {
     "name": "Daniel Rosehill",
     "url": "https://github.com/danielrosehill"

@@ -68,7 +68,7 @@ OBS 28+ bundles obs-websocket v5. The user must enable it once via the GUI (it c
 4. Tick **Enable Authentication**, click **Show Connect Info**, and copy the password.
 5. Click **Apply** then **OK**.
 
-Prompt the user for the password and store it in `config.json` (chmod 600 the file). Do not echo the password back.
+Don't copy the password anywhere. OBS keeps it in `<config>/plugin_config/obs-websocket/config.json` on this machine, and `scripts/obs_ws.py` reads it from there (or from `OBS_WEBSOCKET_PASSWORD` if set). With OBS closed, websocket can also be enabled headlessly by setting `server_enabled: true` in that file.
 
 For older OBS (<28), instruct the user to install the standalone `obs-websocket` plugin from https://github.com/obsproject/obs-websocket/releases and restart OBS before continuing.
 
@@ -113,6 +113,10 @@ If the call fails:
 - **Connection refused** → OBS isn't running, or websocket isn't enabled. Re-run step 2.
 - **Auth failed** → password mismatch. Re-prompt and rewrite `config.json`.
 - **Tool not found** → obs-mcp didn't register. Check `claude mcp list` and re-run step 3.
+
+## Step 4b: Script route (no MCP needed)
+
+`uv run --with obsws-python python3 ${CLAUDE_PLUGIN_ROOT}/scripts/obs_ws.py status` validates the same thing without the MCP server, and is what `apply-scenes` and `set-hotkeys` use.
 
 ## Step 5: Mark setup complete
 

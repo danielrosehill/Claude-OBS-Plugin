@@ -1,6 +1,6 @@
 ---
 name: init-workspace
-description: Initialize the OBS management workspace — a user-owned folder (default ~/Documents/OBS-Workspace) that stores config backups, scene exports, and Claude-generated notes about the user's OBS setup. Optionally turns it into a private GitHub repo so the workspace is version-controlled and survives machine wipes. Run once during onboarding; safe to re-run (idempotent).
+description: Initialize the OBS management workspace — one user-owned folder (ideally a private git repo) shared by all the user's machines, with a machines/<hostname>/ folder per computer for its scenes, hotkeys, device notes, snapshots and health logs. Run once per machine during onboarding (it adds this machine's folder to an existing workspace); safe to re-run.
 ---
 
 # Initialize OBS Management Workspace
@@ -28,33 +28,26 @@ Confirm the path with the user before creating anything.
 
 ## Step 2: Scaffold the directory layout
 
-Create this structure if missing:
+One workspace serves every machine; each machine gets its own folder named by `hostname`. Don't create one repo per machine. On a second machine, clone the existing workspace repo and add a folder.
 
 ```
 $OBS_WORKSPACE/
-├── README.md
-├── backups/           # config tarballs from backup-config skill
-├── scenes/            # exported scene collection JSON
-├── plugins/           # downloaded OBS plugin artifacts + install logs
-├── docs/              # Claude-generated notes (hardware, encoder choices, recording profiles)
-└── .gitignore
+├── README.md                     # machine table: host, folder, OBS version, notes
+├── .gitignore
+└── machines/<hostname>/
+    ├── README.md                 # scenes, hotkeys, setup log, pending items
+    ├── machine.json              # hardware, OS, install type, stable device IDs (no secrets)
+    ├── scenes/definitions/*.json # apply-scenes specs
+    ├── hotkeys.json              # set-hotkeys spec
+    ├── snapshots/<date>-<why>/   # raw copies of <config>/basic before risky changes
+    ├── backups/                  # backup-config tarballs (gitignored)
+    ├── plugins/                  # third-party plugin artifacts and install logs
+    └── docs/                     # notes, fixes, health.md
 ```
 
-Seed `README.md` with a one-paragraph description of the workspace and a pointer to this plugin. Seed `.gitignore` with:
+Fill `machine.json` from `detect-install` and `health.py` (cameras by `/dev/v4l/by-id/`, mics by pulse source name). Seed `.gitignore` with `*.tar.gz`, `*.zip`, `*.AppImage`, `*.deb`, `*.bak-*`, `.DS_Store`. Never commit the websocket password; the plugin's scripts read it from OBS's own config on each machine.
 
-```
-# Large/regenerable artifacts
-*.tar.gz
-*.zip
-*.AppImage
-*.deb
-
-# OS noise
-.DS_Store
-Thumbs.db
-```
-
-By default, ignore the actual backup tarballs — the user can override this if they want backups committed (rarely a good idea given size).
+If the user already has an older single-machine OBS repo, convert it in place: move its content into `machines/<that-host>/` and rename the repo, rather than starting a parallel one.
 
 ## Step 3: Offer to make it a private git repo
 
@@ -63,7 +56,7 @@ Ask the user: *"Make this workspace a private GitHub repo so it's versioned and 
 If yes:
 
 1. Confirm `gh` is authenticated (`gh auth status`).
-2. Decide repo name. Default: `OBS-Workspace`. Confirm.
+2. Decide repo name. Default: `OBS-Machine-Configs`. Confirm. If it already exists on GitHub, clone it to `$OBS_WORKSPACE` instead and just add this machine's folder.
 3. Initialise and push:
 
    ```bash
@@ -79,7 +72,8 @@ If yes:
    ```json
    {
      "workspace_path": "/home/<user>/Documents/OBS-Workspace",
-     "workspace_repo": "git@github.com:<owner>/OBS-Workspace.git",
+     "workspace_repo": "git@github.com:<owner>/OBS-Machine-Configs.git",
+     "machine_dir": "machines/<hostname>",
      "workspace_is_git": true
    }
    ```
