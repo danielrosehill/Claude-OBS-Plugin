@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -50,9 +51,15 @@ def check_install():
         policy = sh("apt-cache", "policy", "obs-studio")
         cand = re.search(r"Candidate:\s*(\S+)", policy)
         out["apt_candidate"] = cand.group(1) if cand else None
-        # A version table with only /var/lib/dpkg/status means no configured repo ships it.
+        # A version table with only /var/lib/dpkg/status means no repo in the *local apt lists*
+        # ships it. Usually the lists are just stale (seen 2026-11-13: after `apt update` the
+        # distro archive listed it again), so report the list age instead of a verdict.
+        lists = [f for f in glob.glob("/var/lib/apt/lists/*_Packages*")]
+        age_days = round((time.time() - max(map(os.path.getmtime, lists))) / 86400, 1) if lists else None
+        out["apt_lists_age_days"] = age_days
         out["apt_source"] = "ppa:obsproject" if "obsproject" in policy else (
-            "orphaned (no repo provides it)" if re.search(r"\*\*\*.*\n\s+100 /var/lib/dpkg/status\s*$", policy) else "distro archive")
+            "not in apt lists (run `sudo apt update`, then recheck)"
+            if re.search(r"\*\*\*.*\n\s+100 /var/lib/dpkg/status\s*$", policy) else "distro archive")
     elif flat:
         m = re.search(r"Version:\s*(\S+)", flat)
         out = {"type": "flatpak", "installed": m.group(1) if m else "?"}
@@ -68,7 +75,7 @@ def check_install():
         out["upstream_latest"] = None
         out["upstream_error"] = str(e)[:120]
     behind = out.get("upstream_latest") and ver_tuple(out["installed"]) < ver_tuple(out["upstream_latest"])
-    out["status"] = "warn" if behind or "orphaned" in str(out.get("apt_source")) else "ok"
+    out["status"] = "warn" if behind or "not in apt lists" in str(out.get("apt_source")) else "ok"
     return out
 
 
@@ -116,9 +123,9 @@ def check_encoders():
             "vaapi_h264_encode": h264 if vainfo is not None else "unknown (install vainfo)"}
 
 
-# Startup noise on every Linux OBS install: no DeckLink card, missing translations,
+# Startup noise on every Linux OBS install: no DeckLink/AJA card, no NVIDIA GPU (nvenc), missing translations,
 # DroidCam probing for iOS devices without usbmuxd.
-BENIGN = re.compile(r"decklink|Failed to load '[\w-]+' text for module|usbmuxd|failed to log status")
+BENIGN = re.compile(r"decklink|aja|obs-nvenc|Failed to load '[\w-]+' text for module|usbmuxd|failed to log status")
 
 
 def check_logs(cfg):
